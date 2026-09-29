@@ -191,7 +191,6 @@ function spinGarnish(dishId) {
   if (pin) { pin.garnish = g.list[g.i]; LS.set('pins', state.pins); }
   if (state.cook && state.cook.dish === dishId) {
     state.cook.garnish = g.list[g.i];
-    state.cook.step.garnish = 0;
     saveCook();
   }
 }
@@ -367,7 +366,10 @@ function renderDeck() {
   const add = (text, cls) => { const s = document.createElement('span'); s.textContent = text; if (cls) s.className = cls; meta.appendChild(s); };
   add(`${d.time} мин`);
   add(`${d.portions} ${plural(d.portions, 'порция', 'порции', 'порций')}`);
-  add('●'.repeat(d.diff) + '○'.repeat(Math.max(3 - d.diff, 0)), 'diff');
+  const diff = document.createElement('span');
+  diff.innerHTML = 'Сложность <span class="diff"></span>';
+  diff.lastChild.textContent = '●'.repeat(d.diff) + '○'.repeat(Math.max(3 - d.diff, 0));
+  meta.appendChild(diff);
   $('c-tech').textContent = d.tech.join(' · ');
 
   const x = stats[id] || {};
@@ -559,8 +561,7 @@ function startCook() {
     dish: id,
     garnish: d.garnish ? garnishOf(id) : null,
     portions: d.portions,
-    tab: 'dish',
-    step: { dish: 0, garnish: 0 },
+    tab: 'steps',
     checked: {},
   };
   saveCook();
@@ -593,10 +594,19 @@ function renderList() {
   }
   $('p-value').textContent = c.portions;
   $('p-minus').disabled = c.portions <= 1;
+  renderIngredients($('l-body'), () => { spinGarnish(c.dish); renderList(); });
+}
 
-  const body = $('l-body');
+/**
+ * Продукты блюда и гарнира с галочками. Общий для экрана продуктов и вкладки «Продукты» в рецепте:
+ * галочки одни и те же. onSpin — смена гарнира; без него кнопки «Сменить» нет.
+ */
+function renderIngredients(body, onSpin) {
+  const c = state.cook;
+  const d = byId[c.dish];
+  const g = c.garnish && byId[c.garnish];
   body.innerHTML = '';
-  const ings = (state.snap.ingredients || {});
+  const ings = state.snap.ingredients || {};
   const group = (label, dishId, items, action) => {
     if (!items.length && !action) return;
     const h = document.createElement('div');
@@ -637,10 +647,8 @@ function renderList() {
   group('По желанию', c.dish, main.filter((x) => !x.req));
   if (d.garnish) {
     const gi = g ? (ings[g.id] || []).map((x, i) => Object.assign({ i: i }, x)) : [];
-    group(g ? 'Гарнир: ' + g.name : 'Без гарнира', g ? g.id : c.dish, gi, {
-      text: 'Сменить ⟳',
-      fn: () => { spinGarnish(c.dish); renderList(); },
-    });
+    const label = g ? 'Гарнир: ' + g.name : 'Без гарнира';
+    group(label, g ? g.id : c.dish, gi, onSpin ? { text: 'Сменить ⟳', fn: onSpin } : null);
   }
 }
 
@@ -652,60 +660,56 @@ function changePortions(delta) {
 }
 
 // ---------- экран 3: рецепт ----------
-function recipeSteps(tab) {
-  const c = state.cook;
-  const id = tab === 'garnish' ? c.garnish : c.dish;
-  return (id && state.snap.steps[id]) || [];
-}
-
+/** Весь рецепт одной страницей: шаги блюда, затем шаги гарнира. Вкладка «Продукты» — те же галочки, что на экране 2. */
 function renderRecipe() {
   const c = state.cook;
-  const hasGarnish = !!(c.garnish && byId[c.garnish]);
-  if (!hasGarnish) c.tab = 'dish';
-  $('r-tabs').hidden = !hasGarnish;
+  if (c.tab !== 'ing') c.tab = 'steps';
   for (const b of $('r-tabs').children) b.classList.toggle('on', b.dataset.v === c.tab);
+  $('r-steps').hidden = c.tab !== 'steps';
+  $('r-ing').hidden = c.tab !== 'ing';
 
-  const steps = recipeSteps(c.tab);
-  const i = Math.min(c.step[c.tab] || 0, Math.max(steps.length - 1, 0));
-  c.step[c.tab] = i;
-  const s = steps[i] || { title: 'Шагов нет', text: 'Добавьте шаги этому блюду в таблице, лист «Шаги».', tech: '' };
-  $('r-count').textContent = steps.length ? `${i + 1} из ${steps.length}` : '';
-  $('r-progress').style.width = steps.length ? `${((i + 1) / steps.length) * 100}%` : '0';
-  $('r-badge').hidden = c.tab !== 'garnish';
-  $('r-badge').textContent = hasGarnish ? 'Гарнир · ' + byId[c.garnish].name : 'Гарнир';
-  $('r-title').textContent = s.title;
-  $('r-text').textContent = s.text;
-  $('r-tech').textContent = s.tech || '';
-
-  const last = i >= steps.length - 1;
-  const nextBtn = $('r-next');
-  $('r-prev').disabled = i === 0;
-  if (!last) {
-    nextBtn.textContent = '›';
-    nextBtn.classList.remove('finish');
-  } else if (c.tab === 'dish' && hasGarnish) {
-    nextBtn.textContent = 'Гарнир ›';
-    nextBtn.classList.add('finish');
-  } else {
-    nextBtn.textContent = 'Готово';
-    nextBtn.classList.add('finish');
+  if (c.tab === 'ing') {
+    renderIngredients($('r-ing'), null);
+    const note = document.createElement('div');
+    note.className = 'r-sub';
+    note.textContent = `На ${c.portions} ${plural(c.portions, 'порцию', 'порции', 'порций')}`;
+    $('r-ing').prepend(note);
+    return;
   }
+
+  const box = $('r-steps');
+  box.innerHTML = '';
+  const d = byId[c.dish];
+  const g = c.garnish && byId[c.garnish];
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  box.appendChild(el('h1', 'r-title', d.name));
+  box.appendChild(el('div', 'r-sub', [`${d.time} мин`, g ? '+ ' + g.name : ''].filter(Boolean).join(' · ')));
+
+  const section = (title, id) => {
+    if (title) box.appendChild(el('div', 'r-section', title));
+    const steps = state.snap.steps[id] || [];
+    if (!steps.length) { box.appendChild(el('p', 'muted', 'Шагов нет — добавьте их в таблице, лист «Шаги».')); return; }
+    const ol = el('ol', 'steps');
+    for (const s of steps) {
+      const li = el('li');
+      if (s.title) li.appendChild(el('b', '', s.title));
+      li.appendChild(el('p', '', s.text));
+      if (s.tech) li.appendChild(el('small', '', s.tech));
+      ol.appendChild(li);
+    }
+    box.appendChild(ol);
+  };
+  section(g ? d.name : '', c.dish);
+  if (g) section('Гарнир: ' + g.name, g.id);
 }
 
-function stepNext(bySwipe) {
+function setRecipeTab(tab) {
   const c = state.cook;
-  const steps = recipeSteps(c.tab);
-  const i = c.step[c.tab] || 0;
-  if (i < steps.length - 1) c.step[c.tab] = i + 1;
-  else if (bySwipe) return;
-  else if (c.tab === 'dish' && c.garnish && byId[c.garnish]) c.tab = 'garnish';
-  else { go('done'); return; }
+  if (!c || c.tab === tab) return;
+  c.tab = tab;
   saveCook();
   renderRecipe();
-}
-function stepPrev() {
-  const c = state.cook;
-  if ((c.step[c.tab] || 0) > 0) { c.step[c.tab]--; saveCook(); renderRecipe(); }
+  window.scrollTo(0, 0);
 }
 
 // Экран не гаснет, пока открыт рецепт. Нет поддержки — молча без неё.
@@ -839,7 +843,7 @@ function closeMore() {
 
 function bind() {
   swipeable($('card'), { onLeft: goNext, onRight: goPrev, onTap: goNext, follow: $('card') });
-  swipeable($('step'), { onLeft: () => stepNext(true), onRight: stepPrev });
+  swipeable($('r-body'), { onLeft: () => setRecipeTab('ing'), onRight: () => setRecipeTab('steps') });
 
   $('cook').onclick = startCook;
   $('c-pin').onclick = togglePin;
@@ -857,15 +861,8 @@ function bind() {
   $('list-back').onclick = $('list-back2').onclick = () => { state.cook = null; LS.set('cook', null); toRoot(); };
 
   $('recipe-back').onclick = () => history.back();
-  $('r-prev').onclick = stepPrev;
-  $('r-next').onclick = () => stepNext(false);
-  $('r-tabs').addEventListener('click', (e) => {
-    const v = e.target.dataset.v;
-    if (!v || v === state.cook.tab) return;
-    state.cook.tab = v;
-    saveCook();
-    renderRecipe();
-  });
+  $('r-done').onclick = () => go('done');
+  $('r-tabs').addEventListener('click', (e) => { if (e.target.dataset.v) setRecipeTab(e.target.dataset.v); });
 
   $('done-back').onclick = () => history.back();
   $('d-save').onclick = saveDone;
@@ -880,8 +877,8 @@ function bind() {
       else if (e.key === 'ArrowRight') goPrev();
       else if (e.key === 'Enter') startCook();
     } else if (!$('recipe').hidden) {
-      if (e.key === 'ArrowRight' || e.key === ' ') stepNext(false);
-      else if (e.key === 'ArrowLeft') stepPrev();
+      if (e.key === 'ArrowLeft') setRecipeTab('ing');
+      else if (e.key === 'ArrowRight') setRecipeTab('steps');
     }
   });
 

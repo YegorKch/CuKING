@@ -118,9 +118,9 @@ input[type=url] {
 }
 .pin-chip.current { background: var(--accent); color: var(--accent-text); }
 
-.stage { flex: 1; display: flex; flex-direction: column; min-height: 320px; touch-action: pan-y; }
+.stage { flex: 1; display: flex; flex-direction: column; touch-action: pan-y; }
 .card {
-  flex: 1; background: var(--card); border-radius: 22px; padding: 18px 20px 20px;
+  background: var(--card); border-radius: 22px; padding: 18px 20px 20px;
   display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 14px rgba(0,0,0,.06);
   will-change: transform;
 }
@@ -130,10 +130,10 @@ input[type=url] {
 .card-actions { display: flex; }
 .pin { filter: grayscale(1); opacity: .45; }
 .pin[aria-pressed=true] { filter: none; opacity: 1; }
-.card-name { font-size: clamp(28px, 8vw, 38px); line-height: 1.1; font-weight: 800; letter-spacing: -.5px; margin-top: auto; }
+.card-name { font-size: clamp(28px, 8vw, 38px); line-height: 1.1; font-weight: 800; letter-spacing: -.5px; }
 .card-desc { font-size: 18px; color: var(--muted); margin: 0; }
 .card-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 16px; font-weight: 600; }
-.card-meta .diff { letter-spacing: 2px; color: var(--accent); }
+.card-meta .diff { color: var(--accent); letter-spacing: 1px; }
 .card-tech { color: var(--muted); font-size: 15px; }
 .card-note { color: var(--warn); font-size: 14px; }
 .garnish {
@@ -172,22 +172,26 @@ input[type=url] {
 .list-buttons { margin-top: auto; padding-top: 8px; display: flex; flex-direction: column; }
 
 /* ---------- рецепт ---------- */
-.r-count { font-weight: 700; font-size: 17px; min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
-.progress { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
-.progress div { height: 100%; background: var(--accent); width: 0; transition: width .15s; }
-.step { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 12px 8px 0; touch-action: pan-y; }
-.step-badge { align-self: flex-start; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; padding: 4px 10px; border-radius: 8px; }
-.step-title { font-size: clamp(28px, 8vw, 36px); line-height: 1.1; font-weight: 800; }
-.step-text { font-size: clamp(22px, 6.2vw, 28px); line-height: 1.4; margin: 0; user-select: text; -webkit-user-select: text; }
-.step-tech { color: var(--accent); font-weight: 600; font-size: 18px; }
-.step-nav { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
-.step-nav button {
-  border: 0; border-radius: var(--radius); height: 72px; font-size: 40px; line-height: 1;
-  background: var(--card); box-shadow: 0 1px 0 var(--line);
+.topbar.sticky {
+  position: sticky; top: 0; z-index: 5; background: var(--bg);
+  margin: calc(-10px - env(safe-area-inset-top)) -16px 0; padding: calc(env(safe-area-inset-top) + 10px) 16px 6px;
 }
-.step-nav button.next { background: var(--accent); color: var(--accent-text); }
-.step-nav button.finish { font-size: 22px; font-weight: 700; }
-.step-nav button:disabled { opacity: .3; }
+.r-body { flex: 1; touch-action: pan-y; }
+#r-ing { display: flex; flex-direction: column; gap: 10px; }
+.r-title { font-size: clamp(26px, 7.5vw, 34px); line-height: 1.1; font-weight: 800; margin: 4px 0 2px; }
+.r-sub { color: var(--muted); font-size: 16px; margin-bottom: 8px; }
+.r-section { color: var(--accent); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 4px; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.steps li { counter-increment: step; position: relative; padding: 14px 0 14px 44px; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; }
+.steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 14px; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent); font-weight: 800; display: grid; place-items: center; font-size: 17px;
+}
+.steps b { display: block; font-size: 21px; margin-bottom: 4px; }
+.steps p { margin: 0; font-size: 20px; line-height: 1.45; user-select: text; -webkit-user-select: text; }
+.steps small { display: block; color: var(--accent); font-weight: 600; font-size: 15px; margin-top: 6px; }
+.sticky-bottom { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 12px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
 
 /* ---------- финал ---------- */
 .done-hero { text-align: center; padding: 24px 0 8px; }

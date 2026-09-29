@@ -109,25 +109,19 @@
 
   <!-- Экран 3 — рецепт -->
   <section id="recipe" class="screen recipe" hidden>
-    <header class="topbar">
+    <header class="topbar sticky">
       <button class="icon" id="recipe-back" type="button" aria-label="К продуктам">←</button>
-      <div class="seg small" id="r-tabs" hidden>
-        <button type="button" data-v="dish" class="on">Блюдо</button>
-        <button type="button" data-v="garnish">Гарнир</button>
+      <div class="seg small" id="r-tabs">
+        <button type="button" data-v="steps" class="on">Рецепт</button>
+        <button type="button" data-v="ing">Продукты</button>
       </div>
-      <span class="r-count" id="r-count"></span>
+      <span class="icon-spacer"></span>
     </header>
-    <div class="progress"><div id="r-progress"></div></div>
-    <div class="step" id="step">
-      <div class="step-badge" id="r-badge" hidden>Гарнир</div>
-      <h2 class="step-title" id="r-title"></h2>
-      <p class="step-text" id="r-text"></p>
-      <div class="step-tech" id="r-tech"></div>
+    <div class="r-body" id="r-body">
+      <div id="r-steps"></div>
+      <div id="r-ing" hidden></div>
     </div>
-    <div class="step-nav">
-      <button type="button" id="r-prev" aria-label="Предыдущий шаг">‹</button>
-      <button type="button" id="r-next" class="next" aria-label="Следующий шаг">›</button>
-    </div>
+    <button class="primary sticky-bottom" id="r-done" type="button">Готово</button>
   </section>
 
   <!-- Финал — оценки -->
