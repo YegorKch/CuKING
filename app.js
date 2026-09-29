@@ -900,6 +900,16 @@ async function saveSetup() {
  * Горизонтальный свайп по элементу. Старт в полосе EDGE у краёв экрана игнорируется,
  * чтобы не спорить с системным жестом «назад». Короткое касание без сдвига — onTap.
  */
+/**
+ * Тап обрабатываем по pointerup, а браузер следом шлёт click в ту же точку. Если экран уже сменился,
+ * этот click попадает в новый экран (например, отмечает продукт). Глушим его один раз.
+ */
+function swallowClick() {
+  const stop = (e) => { e.stopPropagation(); e.preventDefault(); };
+  document.addEventListener('click', stop, { capture: true, once: true });
+  setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 500);
+}
+
 function swipeable(el, { onLeft, onRight, onTap, onMove, onCancel }) {
   let sx = 0, sy = 0, active = false, horiz = null;
   el.addEventListener('pointerdown', (e) => {
@@ -922,7 +932,10 @@ function swipeable(el, { onLeft, onRight, onTap, onMove, onCancel }) {
     else if (horiz && dx > SWIPE) onRight();
     else {
       if (horiz && onCancel && !animating) onCancel();
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && onTap && e.type === 'pointerup') onTap(e);
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && onTap && e.type === 'pointerup') {
+        swallowClick();
+        onTap(e);
+      }
     }
   };
   el.addEventListener('pointerup', end);
