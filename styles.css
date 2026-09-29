@@ -118,7 +118,12 @@ input[type=url] {
 }
 .pin-chip.current { background: var(--accent); color: var(--accent-text); }
 
-.stage { flex: 1; display: flex; flex-direction: column; touch-action: pan-y; }
+/* Главный экран — ровно по высоте окна, без прокрутки страницы. Всё свободное место — зона свайпа и тапа. */
+#deck { height: 100dvh; min-height: 0; overflow: hidden; }
+#deck > * { flex-shrink: 0; }
+#deck > .stage { flex: 1 1 auto; min-height: 0; }
+.stage { display: flex; flex-direction: column; touch-action: pan-y; overflow-y: auto; overflow-x: hidden; }
+.stamp:empty { display: none; }
 .card {
   background: var(--card); border-radius: 22px; padding: 18px 20px 20px;
   display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 14px rgba(0,0,0,.06);

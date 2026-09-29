@@ -842,7 +842,8 @@ function closeMore() {
 }
 
 function bind() {
-  swipeable($('card'), { onLeft: goNext, onRight: goPrev, onTap: goNext, follow: $('card') });
+  // Ловим жест на всей области под карточкой, а не только на ней — так удобнее большим пальцем.
+  swipeable($('stage'), { onLeft: goNext, onRight: goPrev, onTap: goNext, follow: $('card') });
   swipeable($('r-body'), { onLeft: () => setRecipeTab('ing'), onRight: () => setRecipeTab('steps') });
 
   $('cook').onclick = startCook;
