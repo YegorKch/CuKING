@@ -1,5 +1,31 @@
 'use strict';
 
+// ---------- защита запуска ----------
+// Если приложение упало при старте (например, в кеше телефона разошлись версии файлов),
+// вместо пустого экрана показываем кнопку, которая чистит кеш и перезагружает.
+let booted = false;
+function showCrash(err) {
+  if (booted || document.getElementById('crash')) return;
+  const box = document.createElement('div');
+  box.id = 'crash';
+  box.innerHTML = '<p>Не удалось запустить приложение.</p><button type="button" class="primary">Обновить приложение</button><small></small>';
+  box.querySelector('small').textContent = String(err && (err.message || err) || '');
+  box.querySelector('button').onclick = async () => {
+    try {
+      const regs = navigator.serviceWorker ? await navigator.serviceWorker.getRegistrations() : [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      if (window.caches) await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
+    } catch {}
+    location.reload();
+  };
+  document.body.appendChild(box);
+}
+window.addEventListener('error', (e) => showCrash(e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => showCrash(e.reason));
+
+// Регистрируем сразу, до остального кода: даже если ниже что-то упадёт, обновление приедет.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
 // ---------- хранилище ----------
 const LS = {
   get(k, d) { try { const v = localStorage.getItem('c.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -997,6 +1023,4 @@ if (!state.url) {
   flush().then(refresh);                // свежая база — в фоне
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-}
+booted = true;

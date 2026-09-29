@@ -245,3 +245,11 @@ input[type=url] {
 }
 .toast button { border: 0; background: rgba(127,127,127,.25); color: inherit; border-radius: 999px; padding: 7px 14px; font-weight: 600; }
 .toast:not(:has(button:not([hidden]))) { padding-right: 16px; }
+
+/* ---------- аварийный экран ---------- */
+#crash {
+  position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column;
+  justify-content: center; align-items: center; gap: 16px; padding: 24px; text-align: center; font-size: 18px;
+}
+#crash .primary { max-width: 320px; }
+#crash small { color: var(--muted); font-size: 12px; }
