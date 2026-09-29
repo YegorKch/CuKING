@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#f6f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141210" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="CuKING">
+  <title>CuKING</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Первый запуск / настройки -->
+  <section id="setup" class="screen" hidden>
+    <h1>CuKING</h1>
+    <label class="field">
+      <span>Адрес веб-приложения Apps Script</span>
+      <input id="setup-url" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    </label>
+    <p class="err" id="setup-err" hidden></p>
+    <button class="primary" id="setup-save" type="button">Готово</button>
+    <button class="ghost" id="setup-cancel" type="button" hidden>Отмена</button>
+  </section>
+
+  <!-- Экран 1 — рандомайзер -->
+  <section id="deck" class="screen" hidden>
+    <header class="topbar">
+      <div class="seg small" id="deck-seg"></div>
+      <div class="topbar-right">
+        <button class="chip filter-btn" id="filter-btn" type="button" aria-expanded="false">Фильтр</button>
+        <button class="icon" id="settings" type="button" aria-label="Настройки">⚙</button>
+      </div>
+    </header>
+
+    <div class="filters" id="filters" hidden>
+      <div class="filter-row" id="f-cat-row">
+        <span>Что</span>
+        <div class="chips" id="f-cat"></div>
+      </div>
+      <div class="filter-row">
+        <span>Время</span>
+        <div class="chips" id="f-time"></div>
+      </div>
+      <div class="filter-row">
+        <span>Теги</span>
+        <div class="chips" id="f-tags"></div>
+      </div>
+    </div>
+
+    <div class="pins" id="pins" hidden></div>
+
+    <div class="stage" id="stage">
+      <article class="card" id="card">
+        <div class="card-top">
+          <span class="card-cat" id="c-cat"></span>
+          <div class="card-actions">
+            <button class="icon pin" id="c-pin" type="button" aria-label="Закрепить" aria-pressed="false">📌</button>
+            <button class="icon" id="c-more" type="button" aria-label="Ещё">⋯</button>
+          </div>
+        </div>
+        <h2 class="card-name" id="c-name"></h2>
+        <p class="card-desc" id="c-desc"></p>
+        <div class="card-meta" id="c-meta"></div>
+        <div class="card-tech" id="c-tech"></div>
+        <div class="card-note" id="c-note" hidden></div>
+        <button class="garnish" id="c-garnish" type="button" hidden>
+          <span class="garnish-label">+ <b id="c-garnish-name"></b></span><span class="garnish-spin">⟳</span>
+        </button>
+      </article>
+      <div class="empty-state" id="deck-empty" hidden>
+        <p class="empty-title">Ничего не подходит</p>
+        <button class="primary" id="relax" type="button">Ослабить фильтр</button>
+      </div>
+    </div>
+
+    <p class="hint" id="deck-hint">← свайп или тап — дальше · → назад</p>
+    <button class="primary" id="cook" type="button">Готовим это</button>
+    <span class="stamp" id="stamp"></span>
+  </section>
+
+  <!-- Экран 2 — продукты -->
+  <section id="list" class="screen" hidden>
+    <header class="topbar">
+      <button class="icon" id="list-back" type="button" aria-label="Назад к выбору">←</button>
+      <span class="topbar-title">Продукты</span>
+      <span class="icon-spacer"></span>
+    </header>
+    <h1 class="list-title" id="l-title"></h1>
+    <div class="portions">
+      <span>Порций</span>
+      <div class="stepper">
+        <button type="button" id="p-minus" aria-label="Меньше">−</button>
+        <b id="p-value">4</b>
+        <button type="button" id="p-plus" aria-label="Больше">+</button>
+      </div>
+    </div>
+    <div id="l-body"></div>
+    <div class="list-buttons">
+      <button class="primary" id="to-recipe" type="button">К рецепту</button>
+      <button class="ghost" id="list-back2" type="button">Назад к выбору</button>
+    </div>
+  </section>
+
+  <!-- Экран 3 — рецепт -->
+  <section id="recipe" class="screen recipe" hidden>
+    <header class="topbar">
+      <button class="icon" id="recipe-back" type="button" aria-label="К продуктам">←</button>
+      <div class="seg small" id="r-tabs" hidden>
+        <button type="button" data-v="dish" class="on">Блюдо</button>
+        <button type="button" data-v="garnish">Гарнир</button>
+      </div>
+      <span class="r-count" id="r-count"></span>
+    </header>
+    <div class="progress"><div id="r-progress"></div></div>
+    <div class="step" id="step">
+      <div class="step-badge" id="r-badge" hidden>Гарнир</div>
+      <h2 class="step-title" id="r-title"></h2>
+      <p class="step-text" id="r-text"></p>
+      <div class="step-tech" id="r-tech"></div>
+    </div>
+    <div class="step-nav">
+      <button type="button" id="r-prev" aria-label="Предыдущий шаг">‹</button>
+      <button type="button" id="r-next" class="next" aria-label="Следующий шаг">›</button>
+    </div>
+  </section>
+
+  <!-- Финал — оценки -->
+  <section id="done" class="screen" hidden>
+    <header class="topbar">
+      <button class="icon" id="done-back" type="button" aria-label="К рецепту">←</button>
+      <span class="icon-spacer"></span>
+    </header>
+    <div class="done-hero">
+      <div class="done-emoji">🍽</div>
+      <h1 id="d-title">Готово!</h1>
+      <p class="muted">Как получилось?</p>
+    </div>
+    <div class="rate">
+      <div class="rate-row"><span>Егор</span><div class="stars" data-who="re"></div></div>
+      <div class="rate-row"><span>Арина</span><div class="stars" data-who="ra"></div></div>
+    </div>
+    <button class="primary" id="d-save" type="button">Сохранить</button>
+  </section>
+
+  <!-- Меню ⋯ -->
+  <div class="sheet" id="more-sheet" hidden>
+    <div class="sheet-body">
+      <div class="sheet-head"><b id="more-title"></b><button class="icon" type="button" data-close>✕</button></div>
+      <ul class="menu">
+        <li id="m-pause">Не предлагать месяц</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden><span id="toast-text"></span><button type="button" id="toast-undo" hidden>Отменить</button></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

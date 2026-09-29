@@ -1,0 +1,14 @@
+# Исходники и черновики — не публикуем (GitHub Pages = публичный репозиторий)
+*.xlsx
+*.xls
+*.csv
+ТЗ*.md
+Текстовый документ.txt
+
+# Служебное
+__pycache__/
+.claude/
+.vscode/
+Thumbs.db
+desktop.ini
+Рецепты.md
