@@ -223,7 +223,9 @@ function spinGarnish(dishId) {
 
 // ---------- экраны и навигация ----------
 function show(id) {
+  const changed = $(id).hidden;
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
+  if (changed) window.scrollTo(0, 0);   // новый экран — с начала, а не на прокрутке предыдущего
   if (id === 'recipe') wakeLock(true); else wakeLock(false);
 }
 
