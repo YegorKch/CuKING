@@ -564,6 +564,9 @@ function syncBack() {
 const FLY_MS = 170;
 const RISE_MS = 240;
 const SPRING = 'cubic-bezier(.2,.9,.3,1.25)';
+const BACK_SINK_MS = 180;
+const BACK_IN_MS = 380;
+const EASE_OUT = 'cubic-bezier(.22,1,.36,1)';
 let animating = false;
 
 function dragCard(dx) {
@@ -618,20 +621,24 @@ function animateCard(dir, change) {
       done();
     }, FLY_MS);
   } else {
-    // Назад: текущая оседает в колоду, предыдущая прилетает слева.
-    card.style.transition = `transform ${FLY_MS}ms ease-in, opacity ${FLY_MS}ms ease-in`;
+    // Назад: текущая мягко оседает в колоду, предыдущая плавно въезжает слева — без пружины и резкого поворота.
+    card.style.transition = `transform ${BACK_SINK_MS}ms ease-out, opacity ${BACK_SINK_MS}ms ease-out`;
     card.style.transform = 'translateY(12px) scale(.94)';
     card.style.opacity = '0';
     setTimeout(() => {
       change();
       card.style.transition = 'none';
-      card.style.transform = 'translateX(-130%) rotate(-18deg)';
-      card.style.opacity = '1';
+      card.style.transform = 'translateX(-105%) rotate(-8deg)';
+      card.style.opacity = '0';
       void card.offsetWidth;
-      card.style.transition = `transform ${RISE_MS}ms ${SPRING}`;
+      card.style.transition = `transform ${BACK_IN_MS}ms ${EASE_OUT}, opacity ${BACK_IN_MS * 0.6}ms ease-out`;
       card.style.transform = '';
-      done();
-    }, FLY_MS);
+      card.style.opacity = '1';
+      back.style.transition = 'none';
+      back.style.transform = '';
+      back.style.opacity = '';
+      setTimeout(() => { card.style.transition = ''; animating = false; }, BACK_IN_MS);
+    }, BACK_SINK_MS);
   }
 }
 

@@ -3,7 +3,7 @@
 //
 // Файлы версии попадают в кеш только все вместе при установке и только из сети (cache: 'reload'):
 // GitHub Pages отдаёт max-age=600, и без этого новая страница могла встретиться со старым app.js.
-const VERSION = 'v0.3.1';
+const VERSION = 'v0.3.2';
 const CACHE = 'cuking-' + VERSION;
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
