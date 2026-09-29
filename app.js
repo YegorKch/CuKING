@@ -221,6 +221,8 @@ window.addEventListener('popstate', (e) => {
   $('more-sheet').hidden = true;
   let screen = s.screen;
   if (['list', 'recipe', 'done'].includes(screen) && !state.cook) screen = 'deck';
+  // Вернулись на главный — готовку бросили, при следующем запуске рецепт не восстанавливаем.
+  if (screen === 'deck' && state.cook) { state.cook = null; LS.set('cook', null); }
   show(screen);
   render(screen);
 });
@@ -903,11 +905,17 @@ if (!state.url) {
   if (state.snap) buildDeck();
   const cook = state.cook;
   if (cook && byId[cook.dish] && Date.now() - (cook.at || 0) < COOK_TTL) {
-    // Телефон выгрузил приложение посреди готовки — возвращаемся к тому же шагу.
-    history.pushState({ screen: 'list', depth: 1 }, '');
-    history.pushState({ screen: 'recipe', depth: 2 }, '');
+    // Телефон выгрузил приложение посреди готовки — возвращаемся к рецепту.
+    // Chrome пропускает записи истории, добавленные без касания пользователя, и «назад» закрыл бы
+    // приложение. Поэтому запись рецепта кладём при первом касании, до обработчиков кнопок.
+    history.replaceState({ screen: 'deck', depth: 0 }, '');
     show('recipe');
     renderRecipe();
+    const arm = () => {
+      document.removeEventListener('click', arm, true);
+      if (currentNav().depth === 0 && !$('recipe').hidden) history.pushState({ screen: 'recipe', depth: 1 }, '');
+    };
+    document.addEventListener('click', arm, true);
   } else {
     state.cook = null;
     LS.set('cook', null);
