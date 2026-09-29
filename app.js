@@ -356,8 +356,7 @@ function renderDeck() {
   const d = id && byId[id];
   $('card').hidden = !d;
   $('deck-empty').hidden = !!d;
-  $('cook').disabled = !d;
-  $('deck-hint').hidden = !d;
+  $('card-back').hidden = !d || state.order.length < 2;
   if (!d) return;
 
   $('c-cat').textContent = d.cat;
@@ -396,6 +395,7 @@ function renderDeck() {
     $('c-garnish-name').textContent = g ? byId[g].name : 'без гарнира';
   }
   $('c-pin').setAttribute('aria-pressed', String(state.pins.some((p) => p.id === id)));
+  syncBack();
 }
 
 function renderDeckSeg() {
@@ -525,25 +525,88 @@ function relax() {
   renderDeck();
 }
 
-/** Смена карточки: улетает в сторону dir (-1 влево), новая въезжает с другой стороны. Всего ~140 мс. */
+/** Колода под карточкой — той же высоты, что и карточка. */
+function syncBack() {
+  $('card-back').style.height = $('card').offsetHeight + 'px';
+}
+
+/**
+ * Карточка как в колоде: тянется за пальцем с наклоном, улетает с поворотом,
+ * следующая поднимается из-под неё с пружинкой. Назад — наоборот: текущая уходит в колоду,
+ * предыдущая прилетает сбоку.
+ */
+const FLY_MS = 170;
+const RISE_MS = 240;
+const SPRING = 'cubic-bezier(.2,.9,.3,1.25)';
 let animating = false;
+
+function dragCard(dx) {
+  const card = $('card');
+  const back = $('card-back');
+  card.style.transition = 'none';
+  card.style.transform = `translateX(${dx}px) rotate(${dx * 0.05}deg)`;
+  const k = Math.min(Math.abs(dx) / 200, 1);
+  back.style.transition = 'none';
+  back.style.transform = `translateY(${12 - 12 * k}px) scale(${0.94 + 0.06 * k})`;
+  back.style.opacity = String(0.7 + 0.3 * k);
+}
+
+function releaseCard() {
+  const card = $('card');
+  const back = $('card-back');
+  card.style.transition = `transform ${RISE_MS}ms ${SPRING}`;
+  card.style.transform = '';
+  back.style.transition = `transform ${RISE_MS}ms ease, opacity ${RISE_MS}ms ease`;
+  back.style.transform = '';
+  back.style.opacity = '';
+}
+
 function animateCard(dir, change) {
   const card = $('card');
+  const back = $('card-back');
   if (animating || card.hidden) { change(); return; }
   animating = true;
-  card.classList.add('anim');
-  card.style.transform = `translateX(${dir * 110}%)`;
-  card.style.opacity = '0';
-  setTimeout(() => {
-    change();
-    card.classList.remove('anim');
-    card.style.transform = `translateX(${-dir * 40}%)`;
-    void card.offsetWidth;
-    card.classList.add('anim');
-    card.style.transform = '';
-    card.style.opacity = '';
-    setTimeout(() => { card.classList.remove('anim'); animating = false; }, 70);
-  }, 70);
+  if (navigator.vibrate) navigator.vibrate(6);
+  const done = () => {
+    back.style.transition = 'none';
+    back.style.transform = '';
+    back.style.opacity = '';
+    setTimeout(() => { card.style.transition = ''; animating = false; }, RISE_MS);
+  };
+  if (dir < 0) {
+    // Вперёд: текущая улетает влево с поворотом, новая поднимается из колоды.
+    card.style.transition = `transform ${FLY_MS}ms ease-in, opacity ${FLY_MS}ms ease-in`;
+    card.style.transform = `translateX(-130%) rotate(-18deg)`;
+    card.style.opacity = '0';
+    back.style.transition = `transform ${FLY_MS}ms ease-out, opacity ${FLY_MS}ms ease-out`;
+    back.style.transform = 'translateY(0) scale(1)';
+    back.style.opacity = '1';
+    setTimeout(() => {
+      change();
+      card.style.transition = 'none';
+      card.style.transform = 'translateY(12px) scale(.94)';
+      card.style.opacity = '1';
+      void card.offsetWidth;
+      card.style.transition = `transform ${RISE_MS}ms ${SPRING}`;
+      card.style.transform = '';
+      done();
+    }, FLY_MS);
+  } else {
+    // Назад: текущая оседает в колоду, предыдущая прилетает слева.
+    card.style.transition = `transform ${FLY_MS}ms ease-in, opacity ${FLY_MS}ms ease-in`;
+    card.style.transform = 'translateY(12px) scale(.94)';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      change();
+      card.style.transition = 'none';
+      card.style.transform = 'translateX(-130%) rotate(-18deg)';
+      card.style.opacity = '1';
+      void card.offsetWidth;
+      card.style.transition = `transform ${RISE_MS}ms ${SPRING}`;
+      card.style.transform = '';
+      done();
+    }, FLY_MS);
+  }
 }
 
 function goNext() { if (currentId()) animateCard(-1, () => { next(); renderDeck(); }); }
@@ -802,7 +865,7 @@ async function saveSetup() {
  * Горизонтальный свайп по элементу. Старт в полосе EDGE у краёв экрана игнорируется,
  * чтобы не спорить с системным жестом «назад». Короткое касание без сдвига — onTap.
  */
-function swipeable(el, { onLeft, onRight, onTap, follow }) {
+function swipeable(el, { onLeft, onRight, onTap, onMove, onCancel }) {
   let sx = 0, sy = 0, active = false, horiz = null;
   el.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -814,16 +877,18 @@ function swipeable(el, { onLeft, onRight, onTap, follow }) {
     if (!active) return;
     const dx = e.clientX - sx, dy = e.clientY - sy;
     if (horiz === null && Math.abs(dx) + Math.abs(dy) > 8) horiz = Math.abs(dx) > Math.abs(dy);
-    if (horiz && follow && !animating) follow.style.transform = `translateX(${dx}px)`;
+    if (horiz && onMove && !animating) onMove(dx);
   });
   const end = (e) => {
     if (!active) return;
     active = false;
     const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (follow && !animating) follow.style.transform = '';
     if (horiz && dx < -SWIPE) onLeft();
     else if (horiz && dx > SWIPE) onRight();
-    else if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && onTap && e.type === 'pointerup') onTap();
+    else {
+      if (horiz && onCancel && !animating) onCancel();
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && onTap && e.type === 'pointerup') onTap(e);
+    }
   };
   el.addEventListener('pointerup', end);
   el.addEventListener('pointercancel', end);
@@ -844,11 +909,17 @@ function closeMore() {
 }
 
 function bind() {
-  // Ловим жест на всей области под карточкой, а не только на ней — так удобнее большим пальцем.
-  swipeable($('stage'), { onLeft: goNext, onRight: goPrev, onTap: goNext, follow: $('card') });
+  // Жест ловим на всей свободной области. Тап по карточке — открыть блюдо, тап мимо — следующее.
+  swipeable($('stage'), {
+    onLeft: goNext,
+    onRight: () => { if (state.pos > 0) goPrev(); else releaseCard(); },
+    onTap: (e) => { if (e.target.closest('#card')) startCook(); else goNext(); },
+    onMove: dragCard,
+    onCancel: releaseCard,
+  });
+  window.addEventListener('resize', () => { if (!$('deck').hidden) syncBack(); });
   swipeable($('r-body'), { onLeft: () => setRecipeTab('ing'), onRight: () => setRecipeTab('steps') });
 
-  $('cook').onclick = startCook;
   $('c-pin').onclick = togglePin;
   $('c-more').onclick = openMore;
   $('c-garnish').onclick = () => { const id = currentId(); if (id) { spinGarnish(id); renderDeck(); } };
